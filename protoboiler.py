@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-import os
 import sys
 import json
+from pathlib import Path
 
 #   ---------------------------------------------------------------------------
-__app__ = os.path.basename(__file__)
+__app__ = Path(__file__).stem
 __version__ = '0.01'
 
 #   -----------------------------------
@@ -16,7 +16,42 @@ import logging
 from logging import debug, info, warning, error, critical, log
 
 LOGGING_FORMAT = '* %(levelname)s * %(message)s'
-LOGGING_FILE = __app__ + '.log'
+
+#   ---------------------------------------------------------------------------
+def init_logging(level, fn, mode = 'a'):
+    logging.basicConfig(handlers=[logging.FileHandler(fn, mode)], format=LOGGING_FORMAT
+    , level=level)
+
+#   -----------------------------------
+#   Config
+#   -----------------------------------
+
+# -- Configuration parameters with default values
+CONFIG_POOL = {
+    'LOGGING_LEVEL': logging.INFO,
+    'LOGGING_FILE': Path(__app__).with_suffix('.log'),
+}
+
+#   ---------------------------------------------------------------------------
+class Config(dict):
+
+#   -----------------------------------
+    def __init__(self, *args, **kwargs):
+        super().__init__(CONFIG_POOL)
+        args_dict = dict(*args, **kwargs)
+        self.update({ key: args_dict[key] for key in CONFIG_POOL if key in args_dict })
+        self.__dict__ = self
+
+#   -----------------------------------
+    def load_file(self, filename: str):
+        context: dict = {}
+        with open(filename, 'rb') as f:
+            code = compile(f.read(), filename, 'exec')
+        exec(code, context)
+        self.update({ key: context[key] for key in CONFIG_POOL if key in context })
+        self.__dict__ = self
+
+config = Config()
 
 #   -----------------------------------
 #   Protobuf
@@ -54,13 +89,14 @@ def boiling_file(proto_file: FileDescriptorProto, response: plugin.CodeGenerator
     f.content = json.dumps(data, indent=2)
 
 #   ---------------------------------------------------------------------------
-def main(argv):
+def main():
     request = plugin.CodeGeneratorRequest.FromString(sys.stdin.buffer.read())
     response = plugin.CodeGeneratorResponse()
-    info(argv)
+    init_logging(config.LOGGING_LEVEL, config.LOGGING_FILE, 'w')
+    info(request.parameter)
     boiling(request, response)
     sys.stdout.buffer.write(response.SerializeToString())
 
 #   ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
