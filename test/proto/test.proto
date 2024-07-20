@@ -1,0 +1,200 @@
+// An example of a proto file and its generated intermediate representation.
+
+syntax = "proto3";
+
+option optimize_for = CODE_SIZE;
+
+package package1;
+
+service Service1 {
+  rpc Method1(stream Message2) returns (Message1) {}
+}
+
+// Leading comment.
+enum Enum1 {
+  VALUE_1 = 0; // Trailing comment.
+}
+
+message Message1 {
+  message NestedMessage1 {
+    int32 field_1 = 1;
+  }
+  int32 field_1 = 1;
+  NestedMessage1 field_2 = 2;
+  optional Enum1 proto3_optional_field_3 = 3;
+}
+
+message Message2 {
+    repeated int32 field_1 = 1;
+    string field_2 = 2;
+}
+
+/*
+{
+    ####
+    #### Declaration dictionary: { USR: decl }.
+    ####
+    "pool": {
+        ####
+        #### Enum declaration.
+        ####
+        ".package1.Enum1": {
+            "kind": "ENUM",
+            "name": "Enum1",
+            "value": [
+                {
+                    "name:": "VALUE_1",
+                    "number": 0,
+                    "trailing_comments": " Trailing comment.\n"
+                }
+            ],
+            "leading_comments": " Leading comment.\n"
+        },
+        ####
+        #### Message declaration.
+        ####
+        ".package1.Message1.NestedMessage1": {
+            "kind": "MESSAGE",
+            "name": "NestedMessage1",
+            "decl": [],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    #### "OPTIONAL" or "REPEATED" or "REQUIRED"
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                }
+            ]
+        },
+        ####
+        #### Message declaration.
+        ####
+        ".package1.Message1": {
+            "kind": "MESSAGE",
+            "name": "Message1",
+            ####
+            #### List of nested declarations.
+            ####
+            "decl": [
+                ".package1.Message1.NestedMessage1"
+            ],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "field_2",
+                    "type": ".package1.Message1.NestedMessage1",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "_proto3_optional_field_3",
+                    "type": "ONEOF",
+                    "field": [
+                        {
+                            "name": "proto3_optional_field_3",
+                            "type": ".package1.Enum1",
+                            "number": 3,
+                            "label": "OPTIONAL",
+                            "proto3_optional": true
+                        }
+                    ]
+                }
+            ]
+        },
+        ####
+        #### Message declaration.
+        ####
+        ".package1.Message2": {
+            "kind": "MESSAGE",
+            "name": "Message2",
+            "decl": [],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "REPEATED",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "field_2",
+                    "type": "STRING",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                }
+            ]
+        },
+        ####
+        #### Method declaration.
+        ####
+        ".package1.Service1.Method1": {
+            "kind": "METHOD",
+            "name": "Method1",
+            "input": ".package1.Message2",
+            "output": ".package1.Message1",
+            "server_streaming": false,
+            "client_streaming": true,
+            "options": {}
+        },
+        ####
+        #### Service declaration.
+        ####
+        ".package1.Service1": {
+            "kind": "SERVICE",
+            "name": "Service1",
+            "method": [
+                ".package1.Service1.Method1"
+            ]
+        },
+        ####
+        #### File (package) declaration.
+        ####
+        ".package1": {
+            "kind": "FILE",
+            "name": "test.proto",
+            "package": "package1",
+            ####
+            #### List of declarations.
+            ####
+            "decl": [
+                ".package1.Enum1",
+                ".package1.Message1",
+                ".package1.Message2",
+                ".package1.Service1"
+            ],
+            "options": {
+                "optimize_for": 2
+            },
+            "dependency": []
+        }
+    },
+    ####
+    #### List of proto files (packages).
+    ####
+    "decl": [
+        ".package1"
+    ],
+    ####
+    #### Translation configuration.
+    ####
+    "config": {
+        "LOGGING_LEVEL": 10,
+        "LOGGING_FILE": "test.log",
+        "IR_FILE": "ir.json",
+        #### The root of all relative paths in this config.
+        "PATH": "test"
+    }
+}
+
+USR: Unified Symbol Resolution
+*/

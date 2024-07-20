@@ -79,11 +79,11 @@ message Rectangle {
 message Feature {
 
   enum FeatureType {
-    Other = 0; // Unknown feature.
-    Home = 1;
-    Work = 2;
-    Shop = 3;
-    Gas = 4;
+    OTHER = 0; // Unknown feature.
+    HOME = 1;
+    WORK = 2;
+    SHOP = 3;
+    GAS = 4;
   }
 
   // The name of the feature.
@@ -93,7 +93,7 @@ message Feature {
   Point location = 2;
 
   // The type of the feature.
-  FeatureType type = 3;
+  repeated FeatureType type = 3;
 }
 
 // A RouteNote is a message sent while at a given point.
@@ -107,12 +107,12 @@ message RouteNote {
 
 // Unit of distance.
 enum DistanceUnit {
-  Meters = 0;
-  Feet = 1;
-  Kilometers = 2;
-  Miles = 3;
-  NauticalMiles = 4;
-  Yards = 5;
+  METERS = 0;
+  FEET = 1;
+  KILOMETERS = 2;
+  MILES = 3;
+  NAUTICALMILES = 4;
+  YARDS = 5;
 }
 
 // A RouteSummary is received in response to a RecordRoute RPC.
