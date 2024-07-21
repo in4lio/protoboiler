@@ -6,7 +6,7 @@ import typing
 from pathlib import Path
 
 #   ---------------------------------------------------------------------------
-__version__ = '0.02'
+__version__ = '0.03'
 __author__ = 'in4lio@gmail.com'
 
 __app__ = Path(__file__).stem
@@ -36,6 +36,7 @@ CONFIG_POOL = {
     'LOGGING_LEVEL': logging.INFO,
     'LOGGING_FILE': Path(__app__).with_suffix('.log'),
     'IR_FILE': 'ir.json',
+    'TEMPLATE_FILE': [],
 #   -- a config file directory
     'PATH': '',
 }
@@ -128,12 +129,63 @@ class IR:
 
 #   -----------------------------------
     '''
-    Serialize IR and global configuration into a JSON formatted string.
+    Serialize IR and global configuration into a JSON file.
     '''
     @staticmethod
-    def dumps() -> str:
-        return json.dumps({ 'pool': IR.pool, 'decl': IR.decl, 'config': config.__dict__ }
+    def dump(f):
+        return json.dump({ 'pool': IR.pool, 'decl': IR.decl, 'config': config.__dict__ }, f
         , indent=4, cls=JSONEncoder)
+
+#   -----------------------------------
+    '''
+    Iterate over filtered declaration USRs.
+    Filter types:
+        str - a declaration kind
+        set[str] - a set of declaration kinds
+        callable - a callable filter
+    '''
+    @staticmethod
+    def usr_iter(decl, *filter_list):
+        if filter_list:
+            return (usr for usr in decl if all(
+                IR.if_kind(filter, usr)
+                    if isinstance(filter, str) else
+                IR.if_kind_in(filter, usr)
+                    if isinstance(filter, set) else
+                filter(usr)
+                for filter in filter_list
+            ))
+
+        return iter(decl)
+
+#   -----------------------------------
+    '''
+    Iterate over filtered declaration nodes.
+    '''
+    @staticmethod
+    def node_iter(decl, *filter_list):
+        return (IR.lookup(usr) for usr in IR.usr_iter(decl, *filter_list))
+
+#   -----------------------------------
+    @staticmethod
+    def lookup(usr: str) -> dict:
+        if usr in IR.pool:
+            return IR.pool[usr]
+
+        critical('USR (%s) is not found', usr)
+        sys.exit()
+
+#   -----------------------------------
+    @staticmethod
+    def if_kind(value, usr=None):
+        func = lambda usr: IR.lookup(usr)['kind'] == value
+        return func if usr is None else func(usr)
+
+#   -----------------------------------
+    @staticmethod
+    def if_kind_in(pool, usr=None):
+        func = lambda usr: IR.lookup(usr)['kind'] in pool
+        return func if usr is None else func(usr)
 
 #   ---------------------------------------------------------------------------
 class JSONEncoder(json.JSONEncoder):
@@ -160,18 +212,18 @@ def search_location(path: list[int]) -> SourceCodeInfo.Location | None:
     return None
 
 #   ---------------------------------------------------------------------------
-def set_decl_comments(decl, path: list[int]):
+def set_comments(node: dict, path: list[int]):
     loc = search_location(path)
     if loc:
         if loc.HasField('leading_comments'):
-            decl['leading_comments'] = loc.leading_comments
+            node['leading_comments'] = loc.leading_comments
         if loc.HasField("trailing_comments"):
-            decl['trailing_comments'] = loc.trailing_comments
+            node['trailing_comments'] = loc.trailing_comments
 
 #   ---------------------------------------------------------------------------
 def get_enum_value(desc: EnumValueDescriptorProto, scope: list, parent: str, path: list[int]):
     data = { 'name:': desc.name, 'number': desc.number }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     scope.append(data)
 
 #   ---------------------------------------------------------------------------
@@ -182,7 +234,7 @@ def walk_enum(desc: EnumDescriptorProto, decl: list, parent: str, path: list[int
     walk_list(desc.value, value, usr, path.copy(), walk_handle['enum_value'])
 
     data = { 'kind': 'ENUM', 'name': desc.name, 'value': value }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     IR.pool[usr] = data
     decl.append(usr)
 
@@ -195,7 +247,7 @@ def get_field(desc: FieldDescriptorProto, scope: list, parent: str, path: list[i
         'label': FieldDescriptorProto.Label.Name(desc.label).removeprefix('LABEL_'),
         'proto3_optional': desc.proto3_optional
     }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     scope.append(data)
 
 #   ---------------------------------------------------------------------------
@@ -214,7 +266,7 @@ def walk_message(desc: DescriptorProto, decl: list, parent: str, path: list[int]
     root.extend(oneof_decl)
 
     data = { 'kind': 'MESSAGE', 'name': desc.name, 'decl': nested, 'field': root }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     IR.pool[usr] = data
     decl.append(usr)
 
@@ -230,7 +282,7 @@ def walk_method(desc: MethodDescriptorProto, decl: list, parent: str, path: list
         'client_streaming': desc.client_streaming,
         'options': get_options(desc.options)
     }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     IR.pool[usr] = data
     decl.append(usr)
 
@@ -240,7 +292,7 @@ def walk_service(desc: ServiceDescriptorProto, decl: list, parent: str, path: li
     method: list = []
     walk_list(desc.method, method, usr, path.copy(), walk_handle['method'])
     data = { 'kind': 'SERVICE', 'name': desc.name, 'method': method }
-    set_decl_comments(data, path)
+    set_comments(data, path)
     IR.pool[usr] = data
     decl.append(usr)
 
@@ -271,7 +323,7 @@ def get_options(options: Message | None) -> dict:
 
 #   ---------------------------------------------------------------------------
 def walk_file(proto_file: FileDescriptorProto, parent: str):
-    info('Process %s', proto_file.name)
+    info('Boiling a proto file: "%s"', proto_file.name)
 
     usr = parent + '.' + (proto_file.package or proto_file.name)
     decl: list = []
@@ -289,17 +341,42 @@ def walk_file(proto_file: FileDescriptorProto, parent: str):
     IR.decl.append(usr)
 
 #   ---------------------------------------------------------------------------
-def boiling(request: plugin.CodeGeneratorRequest, response: plugin.CodeGeneratorResponse):
+def boiling(request: plugin.CodeGeneratorRequest):
     global PROTO_FILE
 
     for proto_file in request.proto_file:
         PROTO_FILE = proto_file
         walk_file(proto_file, '')
 
-    ir_file = response.file.add()
-    ir_file.name = config.IR_FILE  # type: ignore[attr-defined]
-    info('Create %s', ir_file.name)
-    ir_file.content = IR.dumps()
+    info('Saving IR into a JSON file: "%s"', config.PATH / config.IR_FILE) # type: ignore[attr-defined]
+    with open(config.PATH / config.IR_FILE, 'w') as f: # type: ignore[attr-defined]
+        IR.dump(f)
+
+#   -----------------------------------
+#   Code generator
+#   -----------------------------------
+
+from importlib.util import spec_from_file_location, module_from_spec
+import io
+from contextlib import redirect_stdout
+
+#   ---------------------------------------------------------------------------
+def generate(response: plugin.CodeGeneratorResponse):
+    for templ in config.TEMPLATE_FILE:  # type: ignore[attr-defined]
+        templ = config.PATH / templ  # type: ignore[attr-defined]
+        generated = response.file.add()
+        generated.name = templ.stem
+        info('Generating a file: "%s"', generated.name)
+        with io.StringIO() as buffer, redirect_stdout(buffer):
+            spec = spec_from_file_location(generated.name, templ)
+            if spec:
+                module = module_from_spec(spec)
+                sys.modules[generated.name] = module
+                sys.argv = [generated.name, config.PATH / config.IR_FILE]  # type: ignore[attr-defined]
+                spec.loader.exec_module(module)  # type: ignore[union-attr]
+                generated.content = buffer.getvalue()
+            else:
+                error('Unable to import a template (%s)', templ)
 
 #   ---------------------------------------------------------------------------
 def main():
@@ -312,11 +389,13 @@ def main():
     if opt.config:
         config.from_file(opt.config)
     init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'w')
-    info(opt)
-    info(config)
+    info('Request parameters: %s', opt)
+    info('Config: %s', config)
 
-    boiling(request, response)
+    boiling(request)
+    generate(response)
 
+    info('Writing response')
     sys.stdout.buffer.write(response.SerializeToString())
 
 #   ---------------------------------------------------------------------------

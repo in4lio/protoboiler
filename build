@@ -1,41 +1,8 @@
 #!/bin/bash
 
-set -e
-
-cd "$(dirname $0)"
-
-# -- A template should be able to import protoboiler.py from root folder
-export PYTHONPATH=./:$PYTHONPATH
-
-realpath() {
-    [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
-}
-
 source ./venv/bin/activate
 
-protoc -I$proto_dir --protoboiler_out=config=$config_file,test=value:$build_dir \
+protoc -I$proto_dir --protoboiler_out=config=$config_file,test=value:$output_dir \
 --plugin=protoc-gen-protoboiler=protoboiler.py $proto_dir/*.proto
-
-# -- Boiling Python tepmlates
-
-for templ in $(find $templ_dir -type f -name "*.*.py")
-do
-    templ_name=${templ##*/}
-    generated_file=$output_dir/${templ_name%.*}
-
-    echo "Boiling $templ to make $generated_file..."
-    python3 $templ $ir_file > $generated_file
-done
-
-# -- Boiling GYB templates
-
-for templ in $(find $templ_dir -type f -name "*.gyb")
-do
-    templ_name=${templ##*/}
-    generated_file=$output_dir/${templ_name%.*}
-
-    echo "Boiling $templ to make $generated_file..."
-    python3 gyb/gyb.py -D "IR=$(realpath $ir_file)" -o "$(realpath $generated_file)" "$templ"
-done
 
 deactivate
