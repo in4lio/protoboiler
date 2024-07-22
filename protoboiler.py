@@ -6,7 +6,7 @@ import typing
 from pathlib import Path
 
 #   ---------------------------------------------------------------------------
-__version__ = '0.03'
+__version__ = '0.04'
 __author__ = 'in4lio@gmail.com'
 
 __app__ = Path(__file__).stem
@@ -177,14 +177,20 @@ class IR:
 
 #   -----------------------------------
     @staticmethod
-    def if_kind(value, usr=None):
+    def if_kind(value, usr = None):
         func = lambda usr: IR.lookup(usr)['kind'] == value
         return func if usr is None else func(usr)
 
 #   -----------------------------------
     @staticmethod
-    def if_kind_in(pool, usr=None):
+    def if_kind_in(pool, usr = None):
         func = lambda usr: IR.lookup(usr)['kind'] in pool
+        return func if usr is None else func(usr)
+
+#   -----------------------------------
+    @staticmethod
+    def if_field(field, value, usr = None):
+        func = lambda usr: IR.lookup(usr)[field] == value
         return func if usr is None else func(usr)
 
 #   ---------------------------------------------------------------------------
@@ -222,7 +228,7 @@ def set_comments(node: dict, path: list[int]):
 
 #   ---------------------------------------------------------------------------
 def get_enum_value(desc: EnumValueDescriptorProto, scope: list, parent: str, path: list[int]):
-    data = { 'name:': desc.name, 'number': desc.number }
+    data = { 'name': desc.name, 'number': desc.number }
     set_comments(data, path)
     scope.append(data)
 
@@ -291,7 +297,7 @@ def walk_service(desc: ServiceDescriptorProto, decl: list, parent: str, path: li
     usr = parent + '.' + desc.name
     method: list = []
     walk_list(desc.method, method, usr, path.copy(), walk_handle['method'])
-    data = { 'kind': 'SERVICE', 'name': desc.name, 'method': method }
+    data = { 'kind': 'SERVICE', 'name': desc.name, 'decl': method }
     set_comments(data, path)
     IR.pool[usr] = data
     decl.append(usr)
@@ -363,20 +369,20 @@ from contextlib import redirect_stdout
 #   ---------------------------------------------------------------------------
 def generate(response: plugin.CodeGeneratorResponse):
     for templ in config.TEMPLATE_FILE:  # type: ignore[attr-defined]
-        templ = config.PATH / templ  # type: ignore[attr-defined]
-        generated = response.file.add()
-        generated.name = templ.stem
-        info('Generating a file: "%s"', generated.name)
-        with io.StringIO() as buffer, redirect_stdout(buffer):
-            spec = spec_from_file_location(generated.name, templ)
-            if spec:
-                module = module_from_spec(spec)
-                sys.modules[generated.name] = module
-                sys.argv = [generated.name, config.PATH / config.IR_FILE]  # type: ignore[attr-defined]
-                spec.loader.exec_module(module)  # type: ignore[union-attr]
-                generated.content = buffer.getvalue()
-            else:
-                error('Unable to import a template (%s)', templ)
+        for templ in Path(config.PATH).glob(templ):  # type: ignore[attr-defined]
+            generated = response.file.add()
+            generated.name = templ.stem
+            info('Generating a file: "%s"', generated.name)
+            with io.StringIO() as buffer, redirect_stdout(buffer):
+                spec = spec_from_file_location(generated.name, templ)
+                if spec:
+                    module = module_from_spec(spec)
+                    sys.modules[generated.name] = module
+                    sys.argv = [generated.name, config.PATH / config.IR_FILE]  # type: ignore[attr-defined]
+                    spec.loader.exec_module(module)  # type: ignore[union-attr]
+                    generated.content = buffer.getvalue()
+                else:
+                    error('Unable to import a template (%s)', templ)
 
 #   ---------------------------------------------------------------------------
 def main():

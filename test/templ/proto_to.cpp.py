@@ -7,6 +7,7 @@ if len(sys.argv) != 2:
 
 from logging import debug, info, warning, error
 from protoboiler import IR
+from pathlib import Path
 
 ir = IR.open(sys.argv[1])
 
@@ -14,14 +15,19 @@ ir = IR.open(sys.argv[1])
 #   Code generation
 #   -----------------------------------
 
-info('Generating code from a template: "%s"', __file__)
+# -- the template file
+templ = Path(__file__)
+# -- the name of the correspondent proto-file
+proto = templ.with_suffix('').with_suffix('').stem + '.proto'
+
+info('Generating code from a template: "%s"', templ.name)
 
 f'''
 // Hello world!
 
 '''
 
-for file_node in IR.node_iter(IR.decl, 'FILE'):
+for file_node in IR.node_iter(IR.decl, 'FILE', IR.if_field('name', proto)):
     file_decl = file_node['decl']
     f'''
     File: {file_node['name']}
