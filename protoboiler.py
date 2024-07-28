@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
+'''
+Protocol Buffers compiler plugin to quickly generate boilerplate code
+from your Google Protocol Buffer (proto) definitions.
+'''
+
 import sys
 import json
 import typing
 from pathlib import Path
 
 #   ---------------------------------------------------------------------------
-__version__ = '0.04'
+__version__ = '0.05'
 __author__ = 'in4lio@gmail.com'
 
 __app__ = Path(__file__).stem
@@ -36,7 +41,7 @@ CONFIG_POOL = {
     'LOGGING_LEVEL': logging.INFO,
     'LOGGING_FILE': Path(__app__).with_suffix('.log'),
     'IR_FILE': 'ir.json',
-    'TEMPLATE_FILE': [],
+    'TEMPLATE_LIST': [],
 #   -- a config file directory
     'PATH': '',
 }
@@ -125,7 +130,7 @@ class IR:
 
 #       -- also loading global setting
         config.from_dict(content['config'])
-        init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'a')  # type: ignore[attr-defined]
+        init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'a') # type: ignore[attr-defined]
 
 #   -----------------------------------
     '''
@@ -141,7 +146,7 @@ class IR:
     Iterate over filtered declaration USRs.
     Filter types:
         str - a declaration kind
-        set[str] - a set of declaration kinds
+        container[str] - a container with declaration kinds
         callable - a callable filter
     '''
     @staticmethod
@@ -189,7 +194,7 @@ class IR:
 
 #   -----------------------------------
     @staticmethod
-    def if_field(field, value, usr = None):
+    def if_field_eq(field, value, usr = None):
         func = lambda usr: IR.lookup(usr)[field] == value
         return func if usr is None else func(usr)
 
@@ -202,7 +207,7 @@ class JSONEncoder(json.JSONEncoder):
         return super().default(o)
 
 #   -----------------------------------
-#   Translator
+#   Translator to IR
 #   -----------------------------------
 
 PROTO_FILE: FileDescriptorProto | None = None
@@ -322,6 +327,7 @@ def walk_list(data: list, decl: list, parent: str, path: list[int], handle: dict
 
 #   ---------------------------------------------------------------------------
 def get_options(options: Message | None) -> dict:
+#   -- TODO: save option type
     if not options:
         return {}
 
@@ -329,7 +335,7 @@ def get_options(options: Message | None) -> dict:
 
 #   ---------------------------------------------------------------------------
 def walk_file(proto_file: FileDescriptorProto, parent: str):
-    info('Boiling a proto file: "%s"', proto_file.name)
+    info('Chopping "%s"', proto_file.name)
 
     usr = parent + '.' + (proto_file.package or proto_file.name)
     decl: list = []
@@ -347,14 +353,14 @@ def walk_file(proto_file: FileDescriptorProto, parent: str):
     IR.decl.append(usr)
 
 #   ---------------------------------------------------------------------------
-def boiling(request: plugin.CodeGeneratorRequest):
+def chopping(request: plugin.CodeGeneratorRequest):
     global PROTO_FILE
 
     for proto_file in request.proto_file:
         PROTO_FILE = proto_file
         walk_file(proto_file, '')
 
-    info('Saving IR into a JSON file: "%s"', config.PATH / config.IR_FILE) # type: ignore[attr-defined]
+    info('Saving "%s"', config.PATH / config.IR_FILE) # type: ignore[attr-defined]
     with open(config.PATH / config.IR_FILE, 'w') as f: # type: ignore[attr-defined]
         IR.dump(f)
 
@@ -367,22 +373,33 @@ import io
 from contextlib import redirect_stdout
 
 #   ---------------------------------------------------------------------------
-def generate(response: plugin.CodeGeneratorResponse):
-    for templ in config.TEMPLATE_FILE:  # type: ignore[attr-defined]
-        for templ in Path(config.PATH).glob(templ):  # type: ignore[attr-defined]
+def boiling(response: plugin.CodeGeneratorResponse):
+    for item in config.TEMPLATE_LIST:  # type: ignore[attr-defined]
+        if isinstance(item, str):
+            templ_mask = item
+            proto = None
+        else:
+            templ_mask, proto = item
+
+        for templ in Path(config.PATH).glob(templ_mask):  # type: ignore[attr-defined]
             generated = response.file.add()
-            generated.name = templ.stem
-            info('Generating a file: "%s"', generated.name)
+            if proto:
+#               -- a .proto filename without extension with an inner extension of template
+                generated.name = Path(proto).stem + Path(templ.stem).suffix
+            else:
+#               -- a template filename without outer extension
+                generated.name = templ.stem
+            info('Boiling "%s" to make "%s"', templ, generated.name)
             with io.StringIO() as buffer, redirect_stdout(buffer):
                 spec = spec_from_file_location(generated.name, templ)
                 if spec:
                     module = module_from_spec(spec)
                     sys.modules[generated.name] = module
-                    sys.argv = [generated.name, config.PATH / config.IR_FILE]  # type: ignore[attr-defined]
                     spec.loader.exec_module(module)  # type: ignore[union-attr]
+                    module.boiling(config.PATH / config.IR_FILE, proto)  # type: ignore[attr-defined]
                     generated.content = buffer.getvalue()
                 else:
-                    error('Unable to import a template (%s)', templ)
+                    error('Unable to import a template: "%s"', templ)
 
 #   ---------------------------------------------------------------------------
 def main():
@@ -398,8 +415,8 @@ def main():
     info('Request parameters: %s', opt)
     info('Config: %s', config)
 
-    boiling(request)
-    generate(response)
+    chopping(request)
+    boiling(response)
 
     info('Writing response')
     sys.stdout.buffer.write(response.SerializeToString())

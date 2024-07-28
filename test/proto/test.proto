@@ -1,4 +1,4 @@
-// An example of a proto file and its generated intermediate representation.
+// An example of a .proto file and its generated intermediate representation.
 
 syntax = "proto3";
 
@@ -29,15 +29,15 @@ message Message2 {
     string field_2 = 2;
 }
 
-/*
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 {
-    ####
-    #### Declaration dictionary: { USR: decl }.
-    ####
+    * * *
+    * * * Global declaration dictionary: { USR: decl }.
+    * * *
     "pool": {
-        ####
-        #### Enum declaration.
-        ####
+        * * *
+        * * * Enum declaration.
+        * * *
         ".package1.Enum1": {
             "kind": "ENUM",
             "name": "Enum1",
@@ -50,9 +50,9 @@ message Message2 {
             ],
             "leading_comments": " Leading comment.\n"
         },
-        ####
-        #### Message declaration.
-        ####
+        * * *
+        * * * Message declaration.
+        * * *
         ".package1.Message1.NestedMessage1": {
             "kind": "MESSAGE",
             "name": "NestedMessage1",
@@ -62,21 +62,21 @@ message Message2 {
                     "name": "field_1",
                     "type": "INT32",
                     "number": 1,
-                    #### "OPTIONAL" or "REPEATED" or "REQUIRED"
+                    * * * "OPTIONAL" or "REPEATED" or "REQUIRED"
                     "label": "OPTIONAL",
                     "proto3_optional": false
                 }
             ]
         },
-        ####
-        #### Message declaration.
-        ####
+        * * *
+        * * * Message declaration.
+        * * *
         ".package1.Message1": {
             "kind": "MESSAGE",
             "name": "Message1",
-            ####
-            #### List of nested declarations.
-            ####
+            * * *
+            * * * List of nested declarations.
+            * * *
             "decl": [
                 ".package1.Message1.NestedMessage1"
             ],
@@ -110,9 +110,9 @@ message Message2 {
                 }
             ]
         },
-        ####
-        #### Message declaration.
-        ####
+        * * *
+        * * * Message declaration.
+        * * *
         ".package1.Message2": {
             "kind": "MESSAGE",
             "name": "Message2",
@@ -134,9 +134,9 @@ message Message2 {
                 }
             ]
         },
-        ####
-        #### Method declaration.
-        ####
+        * * *
+        * * * Method declaration.
+        * * *
         ".package1.Service1.Method1": {
             "kind": "METHOD",
             "name": "Method1",
@@ -146,9 +146,9 @@ message Message2 {
             "client_streaming": true,
             "options": {}
         },
-        ####
-        #### Service declaration.
-        ####
+        * * *
+        * * * Service declaration.
+        * * *
         ".package1.Service1": {
             "kind": "SERVICE",
             "name": "Service1",
@@ -156,16 +156,16 @@ message Message2 {
                 ".package1.Service1.Method1"
             ]
         },
-        ####
-        #### File (package) declaration.
-        ####
+        * * *
+        * * * File (package) declaration.
+        * * *
         ".package1": {
             "kind": "FILE",
             "name": "test.proto",
             "package": "package1",
-            ####
-            #### List of declarations.
-            ####
+            * * *
+            * * * List of declarations.
+            * * *
             "decl": [
                 ".package1.Enum1",
                 ".package1.Message1",
@@ -178,23 +178,23 @@ message Message2 {
             "dependency": []
         }
     },
-    ####
-    #### List of proto files (packages).
-    ####
+    * * *
+    * * * List of .proto files (packages).
+    * * *
     "decl": [
         ".package1"
     ],
-    ####
-    #### Translation configuration.
-    ####
+    * * *
+    * * * Translation configuration.
+    * * *
     "config": {
         "LOGGING_LEVEL": 10,
         "LOGGING_FILE": "test.log",
         "IR_FILE": "ir.json",
-        #### The root of all relative paths in this config.
+        * * * The root of all relative paths in this config.
         "PATH": "test"
     }
 }
 
 USR: Unified Symbol Resolution
-*/
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * *  * * * * * * * * * */
