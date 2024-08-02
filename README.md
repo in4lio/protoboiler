@@ -124,7 +124,7 @@ enum class {enum['name']} {{
 
 Running the following command:
 
-```sh
+```shell
 protoc -I. --protoboiler_out=. ./logging.proto
 ```
 you will generate "logging.cpp":
@@ -139,4 +139,23 @@ enum class Level {
     ERROR = 40,
     CRITICAL = 50,
 };
+```
+
+
+## Development
+
+Given that you have cloned this repository and installed `poetry`, you can
+install the plugin dependencies:
+
+```shell
+cd protoboiler/
+
+poetry install
+```
+
+Now you are ready to run the plugin without installing the package.
+The `launcher` script is included in the repository for your convenience:
+
+```shell
+poetry run ./launcher $config_file $proto_dir $output_dir
 ```
