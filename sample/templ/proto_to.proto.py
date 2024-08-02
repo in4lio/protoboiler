@@ -9,8 +9,8 @@ illustrating the potential for automating modifications to existing files.
 '''
 
 from logging import debug, info, warning, error, critical
-from protoboiler import IR
 from pathlib import Path
+from protoboiler import IR
 
 #   -----------------------------------
 #   Boiling .proto from .proto

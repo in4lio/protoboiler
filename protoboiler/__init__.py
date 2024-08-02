@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 '''
 Protocol Buffers compiler plugin to quickly generate boilerplate code
 from your Google Protocol Buffer (proto) definitions.
@@ -7,14 +5,7 @@ from your Google Protocol Buffer (proto) definitions.
 
 import sys
 import json
-import typing
 from pathlib import Path
-
-#   ---------------------------------------------------------------------------
-__version__ = '0.05'
-__author__ = 'in4lio@gmail.com'
-
-__app__ = Path(__file__).stem
 
 #   -----------------------------------
 #   Logging
@@ -39,9 +30,9 @@ All available configuration parameters with default values.
 '''
 CONFIG_POOL = {
     'LOGGING_LEVEL': logging.INFO,
-    'LOGGING_FILE': Path(__app__).with_suffix('.log'),
+    'LOGGING_FILE': 'protoboiler.log',
     'IR_FILE': 'ir.json',
-    'TEMPLATE_LIST': [],
+    'TEMPLATE_LIST': ('*.*.py', ),
 #   -- a config file directory
     'PATH': '',
 }
@@ -92,7 +83,10 @@ class Opt(dict):
 
 #   -----------------------------------
     def parse(self, parameter: str):
-        self.from_dict(dict(i.split('=') for i in parameter.split(',')))
+        if parameter:
+            self.from_dict(dict(i.split('=') for i in parameter.split(',')))
+        else:
+            self.config = None
 
 opt = Opt()
 
@@ -130,7 +124,7 @@ class IR:
 
 #       -- also loading global setting
         config.from_dict(content['config'])
-        init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'a') # type: ignore[attr-defined]
+        init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'a')
 
 #   -----------------------------------
     '''
@@ -360,8 +354,8 @@ def chopping(request: plugin.CodeGeneratorRequest):
         PROTO_FILE = proto_file
         walk_file(proto_file, '')
 
-    info('Saving "%s"', config.PATH / config.IR_FILE) # type: ignore[attr-defined]
-    with open(config.PATH / config.IR_FILE, 'w') as f: # type: ignore[attr-defined]
+    info('Saving "%s"', config.PATH / config.IR_FILE)
+    with open(config.PATH / config.IR_FILE, 'w') as f:
         IR.dump(f)
 
 #   -----------------------------------
@@ -374,14 +368,14 @@ from contextlib import redirect_stdout
 
 #   ---------------------------------------------------------------------------
 def boiling(response: plugin.CodeGeneratorResponse):
-    for item in config.TEMPLATE_LIST:  # type: ignore[attr-defined]
+    for item in config.TEMPLATE_LIST:
         if isinstance(item, str):
             templ_mask = item
             proto = None
         else:
             templ_mask, proto = item
 
-        for templ in Path(config.PATH).glob(templ_mask):  # type: ignore[attr-defined]
+        for templ in Path(config.PATH).glob(templ_mask):
             generated = response.file.add()
             if proto:
 #               -- a .proto filename without extension with an inner extension of template
@@ -395,8 +389,8 @@ def boiling(response: plugin.CodeGeneratorResponse):
                 if spec:
                     module = module_from_spec(spec)
                     sys.modules[generated.name] = module
-                    spec.loader.exec_module(module)  # type: ignore[union-attr]
-                    module.boiling(config.PATH / config.IR_FILE, proto)  # type: ignore[attr-defined]
+                    spec.loader.exec_module(module)
+                    module.boiling(config.PATH / config.IR_FILE, proto)
                     generated.content = buffer.getvalue()
                 else:
                     error('Unable to import a template: "%s"', templ)

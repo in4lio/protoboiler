@@ -1,8 +1,0 @@
-#!/bin/bash
-
-source ./venv/bin/activate
-
-protoc -I$proto_dir --protoboiler_out=config=$config_file,test=value:$output_dir \
---plugin=protoc-gen-protoboiler=protoboiler.py $proto_dir/*.proto
-
-deactivate

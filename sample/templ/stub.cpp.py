@@ -8,8 +8,8 @@ from a .proto file.
 '''
 
 from logging import debug, info, warning, error
-from protoboiler import IR
 from pathlib import Path
+from protoboiler import IR
 
 #   -----------------------------------
 #   Boiling .cpp from .proto
