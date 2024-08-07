@@ -6,6 +6,7 @@ from your Google Protocol Buffer (proto) definitions.
 import sys
 import json
 from pathlib import Path
+from typing import Iterator
 
 #   -----------------------------------
 #   Logging
@@ -144,7 +145,7 @@ class IR:
         callable - a callable filter
     '''
     @staticmethod
-    def usr_iter(decl, *filter_list):
+    def usr_iter(decl, *filter_list) -> Iterator[str]:
         if filter_list:
             return (usr for usr in decl if all(
                 IR.if_kind(filter, usr)
@@ -159,11 +160,11 @@ class IR:
 
 #   -----------------------------------
     '''
-    Iterate over filtered declaration nodes.
+    Iterate over filtered declaration node and USR pairs.
     '''
     @staticmethod
-    def node_iter(decl, *filter_list):
-        return (IR.lookup(usr) for usr in IR.usr_iter(decl, *filter_list))
+    def node_iter(decl, *filter_list) -> Iterator[tuple[dict, str]]:
+        return ((IR.lookup(usr), usr) for usr in IR.usr_iter(decl, *filter_list))
 
 #   -----------------------------------
     @staticmethod

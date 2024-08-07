@@ -1,9 +1,9 @@
 # -*- coding: f -*-
 
 '''
-stub.cpp.py
+stub.swift.py
 
-This template demonstrates the capability to generate C++ code directly
+This template demonstrates the capability to generate Swift code directly
 from a .proto file.
 '''
 
@@ -12,51 +12,79 @@ from pathlib import Path
 from protoboiler import IR
 
 #   -----------------------------------
-#   Boiling .cpp from .proto
+#   Boiling .swift from .proto
 #   -----------------------------------
 
 FIELD_TYPE = {
-    'DOUBLE':   'double',
-    'FLOAT':    'float',
-    'INT64':    'int64_t',
-    'UINT64':   'uint64_t',
-    'INT32':    'int32_t',
-    'FIXED64':  'uint64_t',
-    'FIXED32':  'uint32_t',
-    'BOOL':     'bool',
-    'STRING':   'std::string',
-    'BYTES':    'string',
-    'UINT32':   'uint32_t',
-    'SFIXED32': 'int32_t',
-    'SFIXED64': 'int64_t',
-    'SINT32':   'int32_t',
-    'SINT64':   'int64_t',
+    'DOUBLE':   'Double',
+    'FLOAT':    'Float',
+    'INT64':    'Int64',
+    'UINT64':   'UInt64',
+    'INT32':    'Int32',
+    'FIXED64':  'UInt64',
+    'FIXED32':  'UInt32',
+    'BOOL':     'Bool',
+    'STRING':   'String',
+    'BYTES':    'Data',
+    'UINT32':   'UInt32',
+    'SFIXED32': 'Int32',
+    'SFIXED64': 'Int64',
+    'SINT32':   'Int32',
+    'SINT64':   'Int64',
 }
 
 #   ---------------------------------------------------------------------------
+'''
+Make an identifier:
+'.package.top_decl.inner_decl' -> 'package_top_decl.inner_decl'
+'''
 def usr_to_id(usr: str) -> str:
-    return usr.replace('.', '::')
+    result = usr.removeprefix('.')
+    for package, prefix in package_list:
+        if result.startswith(package + '.'):
+            result = prefix + '_' + result.removeprefix(package + '.')
+            break
+
+    return result
+
+#   ---------------------------------------------------------------------------
+def snake_to_lower_camel(name: str) -> str:
+    head, *tail = name.split('_')
+    return head.lower() + ''.join(x.title() for x in tail)
 
 #   ---------------------------------------------------------------------------
 def look_type(field):
-    cpp_type = FIELD_TYPE.get(field['type'], usr_to_id(field['type']))
-    return f'Repeated<{cpp_type}>*' if field['label'] == 'REPEATED' else cpp_type
+    swift_type = FIELD_TYPE.get(field['type'], usr_to_id(field['type']))
+    return f'[{swift_type}]' if field['label'] == 'REPEATED' else swift_type
 
 #   ---------------------------------------------------------------------------
 def look_input_type(node):
     input_type = usr_to_id(node['input'])
     if node['client_streaming']:
-        return f'StreamReader<{input_type}>*'
+        return f'AsyncThrowingStream<{input_type}, Error>'
     else:
-        return f'const {input_type}*'
+        return input_type
 
 #   ---------------------------------------------------------------------------
 def look_output_type(node):
     output_type = usr_to_id(node['output'])
     if node['server_streaming']:
-        return f'StreamWriter<{output_type}>*'
+        return f'-> AsyncThrowingStream<{output_type}, Error>'
     else:
-        return f'{output_type}*'
+        return f'async throws -> {output_type}'
+
+#   ---------------------------------------------------------------------------
+'''
+The packages represented in the generated file and their corresponding
+identifier prefixes: ('package.v1', 'Package_v1').
+'''
+package_list: list[str, str] = []
+
+def create_package_list():
+    global package_list
+
+    for file, _ in IR.node_iter(IR.decl, 'FILE'):
+        package_list.append((file['package'], file['package'].replace('.', '_').title()))
 
 #   ---------------------------------------------------------------------------
 '''
@@ -84,20 +112,21 @@ def trailing_comment_of(node):
 Boiling a enum declaration list.
 '''
 def enum_list(decl, sh = ''):
-    for enum, _ in decl:
+    for enum, usr in decl:
+        name = usr_to_id(usr).rpartition('.')[2]
         leading_comment_of(enum, sh)
         f'''
-enum class {enum['name']} {{
+public enum {name}: Int {{
 ''' > sh
         trailing_comment_of(enum)
         for value in enum['value']:
             leading_comment_of(value, sh + '    ')
             f'''
-    {value['name']} = {value['number']},
+    case {snake_to_lower_camel(value['name'])} = {value['number']}
 ''' > sh
             trailing_comment_of(value)
         f'''
-}};
+}}
 
 ''' > sh
 
@@ -112,7 +141,7 @@ def message_field_list(decl, sh = ''):
             message_field_list(field['field'], sh)
         else:
             f'''
-{look_type(field)} {field['name']};
+var {field['name']}: {look_type(field)}{'?' if field['proto3_optional'] else ''}
 ''' > sh
         trailing_comment_of(field)
 
@@ -121,17 +150,18 @@ def message_field_list(decl, sh = ''):
 Boiling a message declaration list.
 '''
 def message_list(decl, sh = ''):
-    for message, _ in decl:
+    for message, usr in decl:
+        name = usr_to_id(usr).rpartition('.')[2]
         leading_comment_of(message, sh)
         f'''
-struct {message['name']} {{
+public struct {name} {{
 ''' > sh
         trailing_comment_of(message)
         enum_list(IR.node_iter(message['decl'], 'ENUM'), sh + '    ')
         message_list(IR.node_iter(message['decl'], 'MESSAGE'), sh + '    ')
         message_field_list(message['field'], sh + '    ')
         f'''
-}};
+}}
 
 ''' > sh
 
@@ -140,18 +170,19 @@ struct {message['name']} {{
 Boiling a service declaration list.
 '''
 def service_list(decl, sh = ''):
-    for service, _ in decl:
+    for service, usr in decl:
+        name = usr_to_id(usr).rpartition('.')[2]
         leading_comment_of(service, sh)
         f'''
-class {service['name']} {{
+protocol {name} {{
 ''' > sh
         trailing_comment_of(service)
         for method, _ in IR.node_iter(service['decl']):
             f'''
-    void {method['name']}({look_input_type(method)} input, {look_output_type(method)} output);
+    func {method['name']}(request: {look_input_type(method)}) {look_output_type(method)}
 ''' > sh
         f'''
-}};
+}}
 
 ''' > sh
 
@@ -160,18 +191,16 @@ class {service['name']} {{
 Boiling a .proto file.
 '''
 def proto_file(node, usr):
-    namespace = node['package']
     f'''
-namespace {namespace} {{
-'''
-    file_decl = node['decl']
-    enum_list(IR.node_iter(file_decl, 'ENUM'), '    ')
-    message_list(IR.node_iter(file_decl, 'MESSAGE'), '    ')
-    service_list(IR.node_iter(file_decl, 'SERVICE'), '    ')
-    f'''
-}} // {namespace}
+//
+// {node['package']}
+//
 
 '''
+    file_decl = node['decl']
+    enum_list(IR.node_iter(file_decl, 'ENUM'))
+    message_list(IR.node_iter(file_decl, 'MESSAGE'))
+    service_list(IR.node_iter(file_decl, 'SERVICE'))
 
 #   -----------------------------------
 #   Code generation
@@ -183,26 +212,14 @@ def boiling(json_filename: str, _):
     templ = Path(__file__)
     info('Generating code using "%s"', templ.name)
 
+    create_package_list()
+
     f'''
 // DO NOT EDIT.
+// swift-format-ignore-file
 //
 // Generated by the protoboiler plugin for the protocol buffer compiler.
 // Source: {templ.name}
-
-#include <cstdint>
-#include <string>
-
-template <class T>
-class Repeated {{
-}};
-
-template <class T>
-class StreamWriter {{
-}};
-
-template <class T>
-class StreamReader {{
-}};
 
 '''
     for file, usr in IR.node_iter(IR.decl, 'FILE'):

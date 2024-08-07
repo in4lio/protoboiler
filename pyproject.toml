@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "protoboiler"
-version = "1.0.1"
+version = "1.1.0"
 description = "Protocol Buffers compiler plugin to quickly generate boilerplate code from your Google Protocol Buffer (proto) definitions."
 authors = ["Vitaly Kravtsov <in4lio@gmail.com>"]
 homepage = "https://github.com/in4lio/protoboiler"

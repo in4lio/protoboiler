@@ -92,13 +92,13 @@ def trailing_comment_of(node):
 Boiling a service declaration list.
 '''
 def service_list(decl, sh = ''):
-    for service in decl:
+    for service, _ in decl:
         leading_comment_of(service, sh)
         f'''
 service {service['name']} {{
 ''' > sh
         trailing_comment_of(service)
-        for method in IR.node_iter(service['decl']):
+        for method, _ in IR.node_iter(service['decl']):
             f'''
     rpc {method['name']}({look_stream(method['client_streaming'])}{method['input']}) returns ({look_stream(method['server_streaming'])}{method['output']}) {{
 ''' > sh
@@ -117,14 +117,14 @@ service {service['name']} {{
 Boiling a enum declaration list.
 '''
 def enum_list(decl, sh = ''):
-    for enum in decl:
+    for enum, _ in decl:
         leading_comment_of(enum, sh)
         f'''
 enum {enum['name']} {{
 ''' > sh
         trailing_comment_of(enum)
         for value in enum['value']:
-            leading_comment_of(value, sh)
+            leading_comment_of(value, sh + '    ')
             f'''
     {value['name']} = {value['number']};
 ''' > sh
@@ -160,7 +160,7 @@ oneof {field['name']} {{
 Boiling a message declaration list.
 '''
 def message_list(decl, sh = ''):
-    for message in decl:
+    for message, _ in decl:
         leading_comment_of(message, sh)
         f'''
 message {message['name']} {{
@@ -179,7 +179,7 @@ message {message['name']} {{
 Boiling a .proto file.
 '''
 def proto_file(filename: str):
-    for file in IR.node_iter(IR.decl, 'FILE', IR.if_field_eq('name', filename)):
+    for file, _ in IR.node_iter(IR.decl, 'FILE', IR.if_field_eq('name', filename)):
         f'''
 syntax = "proto3";
 '''

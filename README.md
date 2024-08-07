@@ -107,8 +107,8 @@ def boiling(json_filename: str, _):
     f'''
 // Generated file.
 '''
-    for file in IR.node_iter(IR.decl, 'FILE'):
-        for enum in IR.node_iter(file['decl'], 'ENUM'):
+    for file, _ in IR.node_iter(IR.decl, 'FILE'):
+        for enum, _ in IR.node_iter(file['decl'], 'ENUM'):
             f'''
 enum class {enum['name']} {{
 '''
