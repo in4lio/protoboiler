@@ -4,7 +4,7 @@
 stub.swift.py
 
 This template demonstrates the capability to generate Swift code directly
-from a .proto file.
+from .proto files.
 '''
 
 from logging import debug, info, warning, error
@@ -35,10 +35,10 @@ FIELD_TYPE = {
 
 #   ---------------------------------------------------------------------------
 '''
-Make an identifier:
+Make a qualified name:
 '.package.top_decl.inner_decl' -> 'package_top_decl.inner_decl'
 '''
-def usr_to_id(usr: str) -> str:
+def usr_to_qualified_name(usr: str) -> str:
     result = usr.removeprefix('.')
     for package, prefix in package_list:
         if result.startswith(package + '.'):
@@ -48,18 +48,26 @@ def usr_to_id(usr: str) -> str:
     return result
 
 #   ---------------------------------------------------------------------------
+'''
+Make a member name:
+'.package.top_decl.inner_decl' -> 'inner_decl'
+'''
+def usr_to_name(usr: str) -> str:
+    return usr_to_qualified_name(usr).rpartition('.')[2]
+
+#   ---------------------------------------------------------------------------
 def snake_to_lower_camel(name: str) -> str:
     head, *tail = name.split('_')
     return head.lower() + ''.join(x.title() for x in tail)
 
 #   ---------------------------------------------------------------------------
 def look_type(field):
-    swift_type = FIELD_TYPE.get(field['type'], usr_to_id(field['type']))
+    swift_type = FIELD_TYPE.get(field['type'], usr_to_qualified_name(field['type']))
     return f'[{swift_type}]' if field['label'] == 'REPEATED' else swift_type
 
 #   ---------------------------------------------------------------------------
 def look_input_type(node):
-    input_type = usr_to_id(node['input'])
+    input_type = usr_to_qualified_name(node['input'])
     if node['client_streaming']:
         return f'AsyncThrowingStream<{input_type}, Error>'
     else:
@@ -67,7 +75,7 @@ def look_input_type(node):
 
 #   ---------------------------------------------------------------------------
 def look_output_type(node):
-    output_type = usr_to_id(node['output'])
+    output_type = usr_to_qualified_name(node['output'])
     if node['server_streaming']:
         return f'-> AsyncThrowingStream<{output_type}, Error>'
     else:
@@ -75,16 +83,16 @@ def look_output_type(node):
 
 #   ---------------------------------------------------------------------------
 '''
-The packages represented in the generated file and their corresponding
-identifier prefixes: ('package.v1', 'Package_v1').
+Create a list of packages represented in the generated file and their
+corresponding identifier prefixes: [('package.v1', 'Package_v1'), ...].
 '''
-package_list: list[str, str] = []
-
-def create_package_list():
-    global package_list
-
+def create_package_list() -> list[tuple[str, str]]:
+    package_list = []
     for file, _ in IR.node_iter(IR.decl, 'FILE'):
         package_list.append((file['package'], file['package'].replace('.', '_').title()))
+    return package_list
+
+package_list: list = []
 
 #   ---------------------------------------------------------------------------
 '''
@@ -113,7 +121,7 @@ Boiling a enum declaration list.
 '''
 def enum_list(decl, sh = ''):
     for enum, usr in decl:
-        name = usr_to_id(usr).rpartition('.')[2]
+        name = usr_to_name(usr)
         leading_comment_of(enum, sh)
         f'''
 public enum {name}: Int {{
@@ -151,7 +159,7 @@ Boiling a message declaration list.
 '''
 def message_list(decl, sh = ''):
     for message, usr in decl:
-        name = usr_to_id(usr).rpartition('.')[2]
+        name = usr_to_name(usr)
         leading_comment_of(message, sh)
         f'''
 public struct {name} {{
@@ -171,7 +179,7 @@ Boiling a service declaration list.
 '''
 def service_list(decl, sh = ''):
     for service, usr in decl:
-        name = usr_to_id(usr).rpartition('.')[2]
+        name = usr_to_name(usr)
         leading_comment_of(service, sh)
         f'''
 protocol {name} {{
@@ -207,12 +215,14 @@ def proto_file(node, usr):
 #   -----------------------------------
 
 def boiling(json_filename: str, _):
+    global package_list
+
     IR.open(json_filename)
 
     templ = Path(__file__)
     info('Generating code using "%s"', templ.name)
 
-    create_package_list()
+    package_list = create_package_list()
 
     f'''
 // DO NOT EDIT.

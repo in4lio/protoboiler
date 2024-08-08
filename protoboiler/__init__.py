@@ -388,6 +388,11 @@ def boiling(response: plugin.CodeGeneratorResponse):
             with io.StringIO() as buffer, redirect_stdout(buffer):
                 spec = spec_from_file_location(generated.name, templ)
                 if spec:
+#                   -- add the template directory to `sys.path`` so you can import modules
+                    parent = str(templ.parent.absolute())
+                    if parent not in sys.path:
+                        sys.path.append(parent)
+#                   -- execute the template script
                     module = module_from_spec(spec)
                     sys.modules[generated.name] = module
                     spec.loader.exec_module(module)

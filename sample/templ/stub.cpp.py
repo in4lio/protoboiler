@@ -34,17 +34,17 @@ FIELD_TYPE = {
 }
 
 #   ---------------------------------------------------------------------------
-def usr_to_id(usr: str) -> str:
+def usr_to_qualified_name(usr: str) -> str:
     return usr.replace('.', '::')
 
 #   ---------------------------------------------------------------------------
 def look_type(field):
-    cpp_type = FIELD_TYPE.get(field['type'], usr_to_id(field['type']))
+    cpp_type = FIELD_TYPE.get(field['type'], usr_to_qualified_name(field['type']))
     return f'Repeated<{cpp_type}>*' if field['label'] == 'REPEATED' else cpp_type
 
 #   ---------------------------------------------------------------------------
 def look_input_type(node):
-    input_type = usr_to_id(node['input'])
+    input_type = usr_to_qualified_name(node['input'])
     if node['client_streaming']:
         return f'StreamReader<{input_type}>*'
     else:
@@ -52,7 +52,7 @@ def look_input_type(node):
 
 #   ---------------------------------------------------------------------------
 def look_output_type(node):
-    output_type = usr_to_id(node['output'])
+    output_type = usr_to_qualified_name(node['output'])
     if node['server_streaming']:
         return f'StreamWriter<{output_type}>*'
     else:
