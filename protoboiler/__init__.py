@@ -50,7 +50,8 @@ class Config(dict):
 
 #   -----------------------------------
     def from_dict(self, data):
-        self.update({ key: data[key] for key in CONFIG_POOL if key in data })
+        self.update({ key: data[key]
+            for key in data if key in CONFIG_POOL or key.startswith('MY_') })
         self['PATH'] = Path(self['PATH'])
         for key in self:
             setattr(self, key, self[key])

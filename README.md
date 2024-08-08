@@ -47,6 +47,7 @@ proto files by running:
       the template's `boiling()` function.
 - `IR_FILE`: a filename for saving IR
 
+Custom configuration parameters must be prefixed with `MY_`.
 
 ## How to install the package
 
