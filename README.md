@@ -4,29 +4,54 @@ Protocol Buffers compiler plugin allows you quickly generate boilerplate code
 from your Google Protocol Buffer (proto) definitions using template scripts on
 Python.
 
-The plugin creates a JSON file with intermediate representation (IR) and then
-runs template scripts on Python the generate code.
+The plugin creates a JSON file with intermediate representation (IR) of your
+proto definitions and then runs template scripts on Python to generate code.
+
+
+## Intermediate representation (IR)
+
+The plugin provides methods to easily navigate through specific proto
+definitions in the intermediate representation. For example, to iterate through
+all services, you can write the following:
+
+```python
+# for each .proto file
+for file, _ in IR.node_iter(IR.decl, 'FILE'):
+    # for each service
+    for service, _ in IR.node_iter(file['decl'], 'SERVICE'):
+        print('service:', service['name'])
+        # for each method
+        for method, _ in IR.node_iter(service['decl']):
+            print('  method:', method['name'])
+            print('    input:', method['input'])
+            print('      streaming:', method['client_streaming'])
+            print('    output:', method['output'])
+            print('      streaming:', method['server_streaming'])
+```
 
 
 ## Template script on Python
 
-The script should implement the function that takes an IR JSON filename and
-optional the .proto file name parameters:
+The script should implement the function that takes an IR filename and
+optional a .proto file name parameters:
 
 ```python
 def boiling(json_filename: str, proto_filename: str | None)
 ```
 
-The `json_filename` contains an intermediate representation of all processed
-.proto files. The additional parameter `proto_filename` can be used to filter
-the data and generate code only for the file specified in the `TEMPLATE_LIST`
-parameter of the configuration file.
+The plugin calls the `boiling()` function to generate code. The `json_filename`
+file contains an intermediate representation of all processed .proto files.
+The additional parameter `proto_filename` can be used to filter the data and
+generate code only for the file specified in the `TEMPLATE_LIST` parameter
+of the configuration file.
 
 The script should output the result code into the `stdout` stream, for that
 [`f-codec`](https://github.com/in4lio/f-codec), that wraps lonesome f-strings
-in `print()` can be used.
+in `print()` can be used. Or you can involve any other output method, such as
+the standard `print()` function.
 
-Samples can be found in ["sample/templ/"](sample/templ/).
+Example templates for generating .cpp, .swift and .proto source code can be
+found in ["sample/templ/"](sample/templ/).
 
 You can test code generation using the ["sample/"](sample/) templates and
 proto files by running:
@@ -38,14 +63,16 @@ proto files by running:
 
 ## Configuration file
 
-- `LOGGING_FILE`: a filename for logging
-- `LOGGING_LEVEL`: a logging level
+A configuration file (in Python) can contain the following parameters:
+
+- `LOGGING_FILE`: a filename for logging, `str`
+- `LOGGING_LEVEL`: a logging level, `int`
 - `TEMPLATE_LIST`: a list of template files, with optionally specifying
   a .proto file, `list[templ | tuple[templ, proto]]`
     - `templ`: a file mask, like "*.*.py"
     - `proto`: a name of the specific .proto file that will be provided to
       the template's `boiling()` function.
-- `IR_FILE`: a filename for saving IR
+- `IR_FILE`: a filename for saving IR, `str`
 
 Custom configuration parameters must be prefixed with `MY_`.
 
@@ -64,8 +91,8 @@ deactivate
 
 ## How to use the plugin
 
-To generate code, invoke `protoc` and provide a configuration file to the plugin
-using the `protoboiler_out` parameter:
+To generate code, invoke `protoc` and provide a configuration file (optional)
+to the plugin using the `protoboiler_out` parameter:
 
 ```shell
 source ./venv/bin/activate
