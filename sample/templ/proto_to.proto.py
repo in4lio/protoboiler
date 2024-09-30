@@ -10,7 +10,7 @@ illustrating the potential for automating modifications to existing files.
 
 from logging import debug, info, warning, error, critical
 from pathlib import Path
-from protoboiler import IR
+from protoboiler import IR, config
 
 #   -----------------------------------
 #   Boiling .proto from .proto
@@ -208,6 +208,7 @@ def boiling(json_filename: str, proto_filename: str):
 
     f'''
 // DO NOT EDIT, the file generated from "{templ.name}"
+// MY_OPT = {config.MY_OPT}
 
 '''
     proto_file(proto_filename)

@@ -9,4 +9,4 @@ config_file="$1"
 proto_dir="$2"
 output_dir="$3"
 
-protoc -I$proto_dir --protoboiler_out=config=$config_file:$output_dir $proto_dir/*.proto
+protoc -I$proto_dir --protoboiler_out=config=$config_file,my_opt=hello:$output_dir $proto_dir/*.proto
