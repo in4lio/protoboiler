@@ -57,8 +57,8 @@ class Config(dict):
             setattr(self, key, self[key])
 
 #   -----------------------------------
-    def from_file(self, filename: str):
-        context: dict = {}
+    def from_file(self, filename: str, env: dict = None):
+        context = env.copy() if env else dict()
         with open(filename, 'rb') as f:
             code = compile(f.read(), filename, 'exec')
         exec(code, context)
@@ -411,7 +411,7 @@ def main():
     opt.parse(request.parameter)
 #   -- we expect to receive a "config" file name via request parameters
     if opt.config:
-        config.from_file(opt.config)
+        config.from_file(opt.config, opt)
     init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'w')
     info('Request parameters: %s', opt)
     info('Config: %s', config)
