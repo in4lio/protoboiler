@@ -172,18 +172,34 @@ enum class Level {
 
 ## Development
 
-Given that you have cloned this repository and installed `poetry`, you can
-install the plugin dependencies:
+Given that you have cloned this repository and installed
+[`uv`](https://docs.astral.sh/uv/), you can install the plugin dependencies:
 
 ```shell
 cd protoboiler/
 
-poetry install
+uv sync
 ```
 
 Now you are ready to run the plugin without installing the package.
-The `launcher` script is included in the repository for your convenience:
+The `launcher.py` script, which uses `protoc` bundled into `grpcio-tools`,
+is included in the repository for your convenience:
 
 ```shell
-poetry run ./launcher $config_file $proto_dir $output_dir
+uv run python3 launcher.py $config_file $proto_dir $output_dir
+```
+
+To run the test suite:
+
+```shell
+uv run pytest
+```
+
+The golden test generates code from the ["sample/"](sample/) templates and
+proto files, and compares the results with the reference files in
+["tests/golden/"](tests/golden/). To regenerate the reference files after
+an intended change of the code generation, run:
+
+```shell
+UPDATE_GOLDENS=1 uv run pytest
 ```

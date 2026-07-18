@@ -1,0 +1,417 @@
+{
+    "pool": {
+        ".package1.Enum1": {
+            "kind": "ENUM",
+            "name": "Enum1",
+            "value": [
+                {
+                    "name": "VALUE_1",
+                    "number": 0,
+                    "trailing_comments": " Trailing comment.\n"
+                }
+            ],
+            "leading_comments": " Leading comment.\n"
+        },
+        ".package1.Message1.NestedMessage1": {
+            "kind": "MESSAGE",
+            "name": "NestedMessage1",
+            "decl": [],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                }
+            ]
+        },
+        ".package1.Message1": {
+            "kind": "MESSAGE",
+            "name": "Message1",
+            "decl": [
+                ".package1.Message1.NestedMessage1"
+            ],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "field_2",
+                    "type": ".package1.Message1.NestedMessage1",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "proto3_optional_field_3",
+                    "type": ".package1.Enum1",
+                    "number": 3,
+                    "label": "OPTIONAL",
+                    "proto3_optional": true
+                }
+            ]
+        },
+        ".package1.Message2": {
+            "kind": "MESSAGE",
+            "name": "Message2",
+            "decl": [],
+            "field": [
+                {
+                    "name": "field_1",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "REPEATED",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "field_2",
+                    "type": "STRING",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                }
+            ]
+        },
+        ".package1.Service1.Method1": {
+            "kind": "METHOD",
+            "name": "Method1",
+            "input": ".package1.Message2",
+            "output": ".package1.Message1",
+            "server_streaming": false,
+            "client_streaming": true,
+            "options": {}
+        },
+        ".package1.Service1": {
+            "kind": "SERVICE",
+            "name": "Service1",
+            "decl": [
+                ".package1.Service1.Method1"
+            ]
+        },
+        ".example.proto": {
+            "kind": "FILE",
+            "name": "example.proto",
+            "package": "package1",
+            "decl": [
+                ".package1.Enum1",
+                ".package1.Message1",
+                ".package1.Message2",
+                ".package1.Service1"
+            ],
+            "options": {
+                "optimize_for": 2
+            },
+            "dependency": []
+        },
+        ".routeguide.DistanceUnit": {
+            "kind": "ENUM",
+            "name": "DistanceUnit",
+            "value": [
+                {
+                    "name": "METERS",
+                    "number": 0
+                },
+                {
+                    "name": "FEET",
+                    "number": 1
+                },
+                {
+                    "name": "KILOMETERS",
+                    "number": 2
+                },
+                {
+                    "name": "MILES",
+                    "number": 3
+                },
+                {
+                    "name": "NAUTICALMILES",
+                    "number": 4
+                },
+                {
+                    "name": "YARDS",
+                    "number": 5
+                }
+            ],
+            "leading_comments": " Unit of distance.\n"
+        },
+        ".routeguide.Point": {
+            "kind": "MESSAGE",
+            "name": "Point",
+            "decl": [],
+            "field": [
+                {
+                    "name": "latitude",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                },
+                {
+                    "name": "longitude",
+                    "type": "INT32",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false
+                }
+            ],
+            "leading_comments": " Points are represented as latitude-longitude pairs in the E7 representation\n (degrees multiplied by 10**7 and rounded to the nearest integer).\n Latitudes should be in the range +/- 90 degrees and longitude should be in\n the range +/- 180 degrees (inclusive).\n"
+        },
+        ".routeguide.Rectangle": {
+            "kind": "MESSAGE",
+            "name": "Rectangle",
+            "decl": [],
+            "field": [
+                {
+                    "name": "lo",
+                    "type": ".routeguide.Point",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " One corner of the rectangle.\n"
+                },
+                {
+                    "name": "hi",
+                    "type": ".routeguide.Point",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The other corner of the rectangle.\n"
+                }
+            ],
+            "leading_comments": " A latitude-longitude rectangle, represented as two diagonally opposite\n points \"lo\" and \"hi\".\n"
+        },
+        ".routeguide.Feature.FeatureType": {
+            "kind": "ENUM",
+            "name": "FeatureType",
+            "value": [
+                {
+                    "name": "OTHER",
+                    "number": 0,
+                    "trailing_comments": " Unknown feature.\n"
+                },
+                {
+                    "name": "HOME",
+                    "number": 1
+                },
+                {
+                    "name": "WORK",
+                    "number": 2
+                },
+                {
+                    "name": "SHOP",
+                    "number": 3
+                },
+                {
+                    "name": "GAS",
+                    "number": 4
+                }
+            ]
+        },
+        ".routeguide.Feature": {
+            "kind": "MESSAGE",
+            "name": "Feature",
+            "decl": [
+                ".routeguide.Feature.FeatureType"
+            ],
+            "field": [
+                {
+                    "name": "name",
+                    "type": "STRING",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The name of the feature.\n"
+                },
+                {
+                    "name": "location",
+                    "type": ".routeguide.Point",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The point where the feature is detected.\n"
+                },
+                {
+                    "name": "type",
+                    "type": ".routeguide.Feature.FeatureType",
+                    "number": 3,
+                    "label": "REPEATED",
+                    "proto3_optional": false,
+                    "leading_comments": " The type of the feature.\n"
+                }
+            ],
+            "leading_comments": " A feature names something at a given point.\n\n If a feature could not be named, the name is empty.\n"
+        },
+        ".routeguide.RouteNote": {
+            "kind": "MESSAGE",
+            "name": "RouteNote",
+            "decl": [],
+            "field": [
+                {
+                    "name": "location",
+                    "type": ".routeguide.Point",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The location from which the message is sent.\n"
+                },
+                {
+                    "name": "message",
+                    "type": "STRING",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The message to be sent.\n"
+                }
+            ],
+            "leading_comments": " A RouteNote is a message sent while at a given point.\n"
+        },
+        ".routeguide.RouteSummary.Time": {
+            "kind": "MESSAGE",
+            "name": "Time",
+            "decl": [],
+            "field": [
+                {
+                    "name": "sec",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "trailing_comments": " Time in seconds.\n"
+                }
+            ]
+        },
+        ".routeguide.RouteSummary": {
+            "kind": "MESSAGE",
+            "name": "RouteSummary",
+            "decl": [
+                ".routeguide.RouteSummary.Time"
+            ],
+            "field": [
+                {
+                    "name": "point_count",
+                    "type": "INT32",
+                    "number": 1,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The number of points received.\n"
+                },
+                {
+                    "name": "feature_count",
+                    "type": "INT32",
+                    "number": 2,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The number of known features passed while traversing the route.\n"
+                },
+                {
+                    "name": "distance",
+                    "type": "INT32",
+                    "number": 3,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The covered distance in DistanceUnit.\n"
+                },
+                {
+                    "name": "elapsed_time",
+                    "type": ".routeguide.RouteSummary.Time",
+                    "number": 4,
+                    "label": "OPTIONAL",
+                    "proto3_optional": false,
+                    "leading_comments": " The duration of the traversal.\n"
+                },
+                {
+                    "name": "distance_unit",
+                    "type": ".routeguide.DistanceUnit",
+                    "number": 5,
+                    "label": "OPTIONAL",
+                    "proto3_optional": true,
+                    "leading_comments": " The distance unit.\n"
+                }
+            ],
+            "leading_comments": " A RouteSummary is received in response to a RecordRoute RPC.\n\n It contains the number of individual points received, the number of\n detected features, and the total distance covered as the cumulative sum of\n the distance between each point.\n"
+        },
+        ".routeguide.RouteGuide.GetFeature": {
+            "kind": "METHOD",
+            "name": "GetFeature",
+            "input": ".routeguide.Point",
+            "output": ".routeguide.Feature",
+            "server_streaming": false,
+            "client_streaming": false,
+            "options": {
+                "idempotency_level": 2
+            },
+            "leading_comments": " A simple RPC.\n\n Obtains the feature at a given position.\n\n A feature with an empty name is returned if there's no feature at the given\n position.\n"
+        },
+        ".routeguide.RouteGuide.ListFeatures": {
+            "kind": "METHOD",
+            "name": "ListFeatures",
+            "input": ".routeguide.Rectangle",
+            "output": ".routeguide.Feature",
+            "server_streaming": true,
+            "client_streaming": false,
+            "options": {},
+            "leading_comments": " A server-to-client streaming RPC.\n\n Obtains the Features available within the given Rectangle.  Results are\n streamed rather than returned at once (e.g. in a response message with a\n repeated field), as the rectangle may cover a large area and contain a\n huge number of features.\n"
+        },
+        ".routeguide.RouteGuide.RecordRoute": {
+            "kind": "METHOD",
+            "name": "RecordRoute",
+            "input": ".routeguide.Point",
+            "output": ".routeguide.RouteSummary",
+            "server_streaming": false,
+            "client_streaming": true,
+            "options": {},
+            "leading_comments": " A client-to-server streaming RPC.\n\n Accepts a stream of Points on a route being traversed, returning a\n RouteSummary when traversal is completed.\n"
+        },
+        ".routeguide.RouteGuide.RouteChat": {
+            "kind": "METHOD",
+            "name": "RouteChat",
+            "input": ".routeguide.RouteNote",
+            "output": ".routeguide.RouteNote",
+            "server_streaming": true,
+            "client_streaming": true,
+            "options": {},
+            "leading_comments": " A Bidirectional streaming RPC.\n\n Accepts a stream of RouteNotes sent while a route is being traversed,\n while receiving other RouteNotes (e.g. from other users).\n"
+        },
+        ".routeguide.RouteGuide": {
+            "kind": "SERVICE",
+            "name": "RouteGuide",
+            "decl": [
+                ".routeguide.RouteGuide.GetFeature",
+                ".routeguide.RouteGuide.ListFeatures",
+                ".routeguide.RouteGuide.RecordRoute",
+                ".routeguide.RouteGuide.RouteChat"
+            ],
+            "leading_comments": " Interface exported by the server.\n"
+        },
+        ".route_guide.proto": {
+            "kind": "FILE",
+            "name": "route_guide.proto",
+            "package": "routeguide",
+            "decl": [
+                ".routeguide.DistanceUnit",
+                ".routeguide.Point",
+                ".routeguide.Rectangle",
+                ".routeguide.Feature",
+                ".routeguide.RouteNote",
+                ".routeguide.RouteSummary",
+                ".routeguide.RouteGuide"
+            ],
+            "options": {
+                "java_package": "io.grpc.examples.routeguide",
+                "java_outer_classname": "RouteGuideProto",
+                "java_multiple_files": true,
+                "objc_class_prefix": "RTG"
+            },
+            "dependency": []
+        }
+    },
+    "decl": [
+        ".example.proto",
+        ".route_guide.proto"
+    ]
+}

@@ -1,0 +1,31 @@
+
+// DO NOT EDIT, the file generated from "proto_to.proto.py"
+// MY_OPT = hello
+
+syntax = "proto3";
+option optimize_for = "2";
+package package1;
+service Service1 {
+    rpc Method1(stream .package1.Message2) returns (.package1.Message1) {
+    }
+}
+
+// Leading comment.
+enum Enum1 {
+    VALUE_1 = 0; // Trailing comment.
+}
+
+message Message1 {
+    message NestedMessage1 {
+        int32 field_1 = 1;
+    }
+
+    int32 field_1 = 1;
+    .package1.Message1.NestedMessage1 field_2 = 2;
+    optional .package1.Enum1 proto3_optional_field_3 = 3;
+}
+
+message Message2 {
+    repeated int32 field_1 = 1;
+    string field_2 = 2;
+}

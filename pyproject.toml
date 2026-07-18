@@ -1,23 +1,37 @@
-[tool.poetry]
+[project]
 name = "protoboiler"
-version = "1.2.2"
+version = "2.0.0"
 description = "Protocol Buffers compiler plugin to quickly generate boilerplate code from your Google Protocol Buffer (proto) definitions."
-authors = ["Vitaly Kravtsov <in4lio@gmail.com>"]
-homepage = "https://github.com/in4lio/protoboiler"
+authors = [
+    { name = "Vitaly Kravtsov", email = "in4lio@gmail.com" },
+]
 license = "MIT"
+license-files = ["LICENSE.md"]
 readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "protobuf>=5.27.2,<8",
+    "f-codec>=0.1.1,<0.2",
+]
 
-[tool.poetry.scripts]
+[project.urls]
+Homepage = "https://github.com/in4lio/protoboiler"
+
+[project.scripts]
 protoc-gen-protoboiler = "protoboiler:main"
 
-[tool.poetry.dependencies]
-python = "^3.11"
-protobuf = "^5.27.2"
-f-codec = "^0.1.1"
-
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.11.1"
+[dependency-groups]
+dev = [
+    "mypy>=1.11.1",
+    "pytest>=8.3",
+    # -- provides a bundled `protoc` for the tests and `launcher.py`
+    "grpcio-tools>=1.66",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.7.19,<1"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# -- the package lives in the repository root, not in "src/"
+module-root = ""

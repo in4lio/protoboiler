@@ -40,6 +40,12 @@ CONFIG_POOL = {
 
 #   ---------------------------------------------------------------------------
 class Config(dict):
+#   -- the attributes are set dynamically in `from_dict`, declared here for mypy
+    LOGGING_LEVEL: int
+    LOGGING_FILE: str
+    IR_FILE: str
+    TEMPLATE_LIST: tuple | list
+    PATH: Path
 
 #   -----------------------------------
     def __init__(self, *args, **kwargs):
@@ -57,7 +63,7 @@ class Config(dict):
             setattr(self, key, self[key])
 
 #   -----------------------------------
-    def from_file(self, filename: str, env: dict = None):
+    def from_file(self, filename: str, env: dict | None = None):
         context = env.copy() if env else dict()
         with open(filename, 'rb') as f:
             code = compile(f.read(), filename, 'exec')
@@ -85,10 +91,13 @@ class Opt(dict):
 
 #   -----------------------------------
     def parse(self, parameter: str):
+        data = {}
         if parameter:
-            self.from_dict(dict(i.split('=') for i in parameter.split(',')))
-        else:
-            self.config = None
+            for item in parameter.split(','):
+                key, _, value = item.partition('=')
+                data[key] = value
+        self.from_dict(data)
+        self.setdefault('config', None)
 
 opt = Opt()
 
@@ -103,6 +112,7 @@ from google.protobuf.descriptor_pb2 import (
     FieldDescriptorProto, EnumDescriptorProto, EnumValueDescriptorProto, SourceCodeInfo,
 )
 from google.protobuf.message import Message
+from google.protobuf.json_format import MessageToDict
 
 #   -----------------------------------
 #   Intermediate representation (IR)
@@ -174,7 +184,7 @@ class IR:
             return IR.pool[usr]
 
         critical('USR (%s) is not found', usr)
-        sys.exit()
+        raise KeyError(f'USR ({usr}) is not found in the IR pool')
 
 #   -----------------------------------
     @staticmethod
@@ -200,7 +210,17 @@ class JSONEncoder(json.JSONEncoder):
         if isinstance(o, Path):
             return str(o)
 
-        return super().default(o)
+        if isinstance(o, Message):
+            return MessageToDict(o)
+
+        if isinstance(o, bytes):
+            return o.decode('utf-8', 'backslashreplace')
+
+#       -- repeated option values come as protobuf container types
+        try:
+            return list(o)
+        except TypeError:
+            return str(o)
 
 #   -----------------------------------
 #   Translator to IR
@@ -267,10 +287,15 @@ def walk_message(desc: DescriptorProto, decl: list, parent: str, path: list[int]
     root: list = []
     oneof_decl = [{ 'name': val.name, 'type': 'ONEOF', 'field': []} for val in desc.oneof_decl ]
     for i, field in enumerate(desc.field):
-        scope = oneof_decl[field.oneof_index]['field'] if field.HasField('oneof_index') else root
+#       -- proto3 optional fields belong to a synthetic oneof, keep them as plain fields
+        if field.HasField('oneof_index') and not field.proto3_optional:
+            scope = oneof_decl[field.oneof_index]['field']
+        else:
+            scope = root
         walk_handle['field']['func'](field, scope, parent
         , path + [walk_handle['field']['number'], i])
-    root.extend(oneof_decl)
+#   -- drop synthetic oneofs, left empty after moving their fields to the root
+    root.extend(oneof for oneof in oneof_decl if oneof['field'])
 
     data = { 'kind': 'MESSAGE', 'name': desc.name, 'decl': nested, 'field': root }
     set_comments(data, path)
@@ -333,11 +358,14 @@ def get_options(options: Message | None) -> dict:
 def walk_file(proto_file: FileDescriptorProto, parent: str):
     info('Chopping "%s"', proto_file.name)
 
-    usr = parent + '.' + (proto_file.package or proto_file.name)
+#   -- the file USR is based on the unique file name, while declarations are scoped
+#   -- by the package to keep USRs aligned with fully qualified type references
+    usr = parent + '.' + proto_file.name
+    scope = parent + '.' + proto_file.package if proto_file.package else parent
     decl: list = []
-    walk_list(proto_file.enum_type, decl, usr, [], walk_handle['enum'])
-    walk_list(proto_file.message_type, decl, usr, [], walk_handle['message'])
-    walk_list(proto_file.service, decl, usr, [], walk_handle['service'])
+    walk_list(proto_file.enum_type, decl, scope, [], walk_handle['enum'])
+    walk_list(proto_file.message_type, decl, scope, [], walk_handle['message'])
+    walk_list(proto_file.service, decl, scope, [], walk_handle['service'])
     IR.pool[usr] = {
         'kind': 'FILE',
         'name': proto_file.name,
@@ -369,7 +397,25 @@ import io
 from contextlib import redirect_stdout
 
 #   ---------------------------------------------------------------------------
-def boiling(response: plugin.CodeGeneratorResponse):
+def boiling_templ(templ: Path, name: str, proto: str | None) -> str:
+    with io.StringIO() as buffer, redirect_stdout(buffer):
+        spec = spec_from_file_location(name, templ)
+        if spec is None or spec.loader is None:
+            raise ImportError(f'unable to import a template: "{templ}"')
+#       -- add the template directory to `sys.path` so you can import modules
+        parent = str(templ.parent.absolute())
+        if parent not in sys.path:
+            sys.path.append(parent)
+#       -- execute the template script
+        module = module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+        module.boiling(config.PATH / config.IR_FILE, proto)
+        return buffer.getvalue()
+
+#   ---------------------------------------------------------------------------
+def boiling(response: plugin.CodeGeneratorResponse) -> list[str]:
+    error_list: list[str] = []
     for item in config.TEMPLATE_LIST:
         if isinstance(item, str):
             templ_mask = item
@@ -378,29 +424,24 @@ def boiling(response: plugin.CodeGeneratorResponse):
             templ_mask, proto = item
 
         for templ in Path(config.PATH).glob(templ_mask):
-            generated = response.file.add()
             if proto:
 #               -- a .proto filename without extension with an inner extension of template
-                generated.name = Path(proto).stem + Path(templ.stem).suffix
+                name = Path(proto).stem + Path(templ.stem).suffix
             else:
 #               -- a template filename without outer extension
-                generated.name = templ.stem
-            info('Boiling "%s" to make "%s"', templ, generated.name)
-            with io.StringIO() as buffer, redirect_stdout(buffer):
-                spec = spec_from_file_location(generated.name, templ)
-                if spec:
-#                   -- add the template directory to `sys.path`` so you can import modules
-                    parent = str(templ.parent.absolute())
-                    if parent not in sys.path:
-                        sys.path.append(parent)
-#                   -- execute the template script
-                    module = module_from_spec(spec)
-                    sys.modules[generated.name] = module
-                    spec.loader.exec_module(module)
-                    module.boiling(config.PATH / config.IR_FILE, proto)
-                    generated.content = buffer.getvalue()
-                else:
-                    error('Unable to import a template: "%s"', templ)
+                name = templ.stem
+            info('Boiling "%s" to make "%s"', templ, name)
+            try:
+                content = boiling_templ(templ, name, proto)
+            except Exception as e:
+                error('Boiling "%s" failed: %s', templ, e)
+                error_list.append(f'{templ}: {e}')
+                continue
+            generated = response.file.add()
+            generated.name = name
+            generated.content = content
+
+    return error_list
 
 #   ---------------------------------------------------------------------------
 def main():
@@ -408,16 +449,22 @@ def main():
     response = plugin.CodeGeneratorResponse()
     response.supported_features |= plugin.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
-    opt.parse(request.parameter)
-#   -- we expect to receive a "config" file name via request parameters
-    if opt.config:
-        config.from_file(opt.config, opt)
-    init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'w')
-    info('Request parameters: %s', opt)
-    info('Config: %s', config)
+    try:
+        opt.parse(request.parameter)
+#       -- we expect to receive a "config" file name via request parameters
+        if opt.config:
+            config.from_file(opt.config, opt)
+        init_logging(config.LOGGING_LEVEL, config.PATH / config.LOGGING_FILE, 'w')
+        info('Request parameters: %s', opt)
+        info('Config: %s', config)
 
-    chopping(request)
-    boiling(response)
+        chopping(request)
+        error_list = boiling(response)
+        if error_list:
+            response.error = '; '.join(error_list)
+    except Exception as e:
+        critical('%s', e)
+        response.error = str(e)
 
     info('Writing response')
     sys.stdout.buffer.write(response.SerializeToString())
