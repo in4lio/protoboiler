@@ -1,0 +1,100 @@
+
+// DO NOT EDIT, the file generated from "proto_to.proto.py"
+// MY_OPT = hello
+
+syntax = "proto3";
+option java_package = "io.grpc.examples.routeguide";
+option java_outer_classname = "RouteGuideProto";
+option java_multiple_files = "True";
+option objc_class_prefix = "RTG";
+package routeguide;
+// Interface exported by the server.
+service RouteGuide {
+    rpc GetFeature(.routeguide.Point) returns (.routeguide.Feature) {
+        option idempotency_level = "2";
+    }
+    rpc ListFeatures(.routeguide.Rectangle) returns (stream .routeguide.Feature) {
+    }
+    rpc RecordRoute(stream .routeguide.Point) returns (.routeguide.RouteSummary) {
+    }
+    rpc RouteChat(stream .routeguide.RouteNote) returns (stream .routeguide.RouteNote) {
+    }
+}
+
+// Unit of distance.
+enum DistanceUnit {
+    METERS = 0;
+    FEET = 1;
+    KILOMETERS = 2;
+    MILES = 3;
+    NAUTICALMILES = 4;
+    YARDS = 5;
+}
+
+// Points are represented as latitude-longitude pairs in the E7 representation
+// (degrees multiplied by 10**7 and rounded to the nearest integer).
+// Latitudes should be in the range +/- 90 degrees and longitude should be in
+// the range +/- 180 degrees (inclusive).
+message Point {
+    int32 latitude = 1;
+    int32 longitude = 2;
+}
+
+// A latitude-longitude rectangle, represented as two diagonally opposite
+// points "lo" and "hi".
+message Rectangle {
+    // One corner of the rectangle.
+    .routeguide.Point lo = 1;
+    // The other corner of the rectangle.
+    .routeguide.Point hi = 2;
+}
+
+// A feature names something at a given point.
+//
+// If a feature could not be named, the name is empty.
+message Feature {
+    enum FeatureType {
+        OTHER = 0; // Unknown feature.
+        HOME = 1;
+        WORK = 2;
+        SHOP = 3;
+        GAS = 4;
+    }
+
+    // The name of the feature.
+    string name = 1;
+    // The point where the feature is detected.
+    .routeguide.Point location = 2;
+    // The type of the feature.
+    repeated .routeguide.Feature.FeatureType type = 3;
+}
+
+// A RouteNote is a message sent while at a given point.
+message RouteNote {
+    // The location from which the message is sent.
+    .routeguide.Point location = 1;
+    // The message to be sent.
+    string message = 2;
+}
+
+// A RouteSummary is received in response to a RecordRoute RPC.
+//
+// It contains the number of individual points received, the number of
+// detected features, and the total distance covered as the cumulative sum of
+// the distance between each point.
+message RouteSummary {
+    message Time {
+        int32 sec = 1; // Time in seconds.
+    }
+
+    // The number of points received.
+    int32 point_count = 1;
+    // The number of known features passed while traversing the route.
+    int32 feature_count = 2;
+    // The covered distance in DistanceUnit.
+    int32 distance = 3;
+    // The duration of the traversal.
+    .routeguide.RouteSummary.Time elapsed_time = 4;
+    // The distance unit.
+    optional .routeguide.DistanceUnit distance_unit = 5;
+}

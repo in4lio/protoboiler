@@ -10,7 +10,8 @@ def launcher(config_file, proto_dir, output_dir):
     protoc.main((
         '',
         f'-I={proto_dir}',
-        f'--protoboiler_out=config={config_file}:{output_dir}',
+#       -- `my_opt` is accessed by "sample/sample.config", the same as in `launcher`
+        f'--protoboiler_out=config={config_file},my_opt=hello:{output_dir}',
         *proto_list
     ))
 

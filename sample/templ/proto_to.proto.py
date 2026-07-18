@@ -48,8 +48,10 @@ def look_stream(stream: bool):
     return 'stream ' if stream else ''
 
 #   ---------------------------------------------------------------------------
-def look_label(label: str):
-    return FIELD_LABEL.get(label, '')
+def look_label(field: dict):
+    if field.get('proto3_optional'):
+        return 'optional '
+    return FIELD_LABEL.get(field['label'], '')
 
 #   ---------------------------------------------------------------------------
 def look_type(field_type: str):
@@ -151,7 +153,7 @@ oneof {field['name']} {{
 ''' > sh
         else:
             f'''
-{look_label(field['label'])}{look_type(field['type'])} {field['name']} = {field['number']};
+{look_label(field)}{look_type(field['type'])} {field['name']} = {field['number']};
 ''' > sh
         trailing_comment_of(field)
 

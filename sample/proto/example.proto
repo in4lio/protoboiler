@@ -95,18 +95,14 @@ message Message2 {
                     "label": "OPTIONAL",
                     "proto3_optional": false
                 },
+                * * * A proto3 optional field is a plain field, while a real
+                * * * oneof comes as { "name", "type": "ONEOF", "field": [...] }.
                 {
-                    "name": "_proto3_optional_field_3",
-                    "type": "ONEOF",
-                    "field": [
-                        {
-                            "name": "proto3_optional_field_3",
-                            "type": ".package1.Enum1",
-                            "number": 3,
-                            "label": "OPTIONAL",
-                            "proto3_optional": true
-                        }
-                    ]
+                    "name": "proto3_optional_field_3",
+                    "type": ".package1.Enum1",
+                    "number": 3,
+                    "label": "OPTIONAL",
+                    "proto3_optional": true
                 }
             ]
         },
@@ -152,14 +148,15 @@ message Message2 {
         ".package1.Service1": {
             "kind": "SERVICE",
             "name": "Service1",
-            "method": [
+            "decl": [
                 ".package1.Service1.Method1"
             ]
         },
         * * *
-        * * * File (package) declaration.
+        * * * File declaration, its USR is based on the file name, while
+        * * * declaration USRs are scoped by the package.
         * * *
-        ".package1": {
+        ".test.proto": {
             "kind": "FILE",
             "name": "test.proto",
             "package": "package1",
@@ -179,10 +176,10 @@ message Message2 {
         }
     },
     * * *
-    * * * List of .proto files (packages).
+    * * * List of .proto files.
     * * *
     "decl": [
-        ".package1"
+        ".test.proto"
     ],
     * * *
     * * * Translation configuration.
